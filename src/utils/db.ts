@@ -1,13 +1,16 @@
 import { Sequelize } from "sequelize";
 
-const dbName = "test"; 
-const dbUser = "root";
-const dbPass = "";
+import 'dotenv/config'
+
+const dbName: any = process.env.DB_NAME; 
+const dbUser: any = process.env.DB_USER;
+const dbPass: any = process.env.DB_PASS;
+const dbHost: any = process.env.DB_HOST;
 
 const db = new Sequelize(dbName, dbUser, dbPass, {
-    host: "localhost",
-    dialect: "mysql"
-    , logging: false
+    host: dbHost,
+    dialect: "mysql",
+    logging: false
 });
 
 export default db;
