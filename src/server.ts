@@ -7,6 +7,26 @@ import { Paymentnote } from "./models/paymentnote";
 import { v4 as uuidv4 } from "uuid";
 import { Op, QueryTypes } from "sequelize";
 
+// Interfaces
+interface iTransaction {
+	transaction_uuid: string;
+	transaction_status_code: string;
+	transaction_value: Number;
+    transaction_datetime: Date;
+    transaction_payment_note_uuid: string;
+}
+
+interface iPaymentnoteWithTransactions {
+    payment_note_uuid: string;
+    payment_note_created_datetime: Date;
+    payment_note_period_from_datetime: Date;
+    payment_note_period_to_datetime: Date;
+    payment_note_transactions_count: Number;
+    payment_note_value: Number;
+    payment_note_status_code: string;
+    transactions: iTransaction[]
+}
+
 db.sync().then(() => {
     console.log("*** DB connected");
 });
@@ -17,6 +37,7 @@ const port = 9000;
 // To read the body
 app.use(express.json());
 
+// Routes
 app.get("/transaction", async (req: Request, res: Response) => {
     try {
         const limit: number = Number(req.query.limit) || 10;
@@ -26,7 +47,7 @@ app.get("/transaction", async (req: Request, res: Response) => {
 
         return res.json(records);
     } catch (e) {
-        return res.json({ msg: "fail to read", status: 500, route: "/read" });
+        return res.json({ msg: "transaction failed", status: 500 });
     }
 });
 
@@ -42,7 +63,7 @@ app.get("/transaction/:uuid", async (req: Request, res: Response) => {
     
         return res.json(record);
     } catch (e) {
-        return res.json({ msg: "fail to read", status: 500, route: "/read" });
+        return res.json({ msg: "transaction by uuid failed", status: 500 });
     }
 });
 
@@ -55,7 +76,7 @@ app.get("/paymentnote", async (req: Request, res: Response) => {
 
         return res.json(records);
     } catch (e) {
-        return res.json({ msg: "fail to read", status: 500, route: "/read" });
+        return res.json({ msg: "paymentnote failed", status: 500 });
     }
 });
 
@@ -69,28 +90,27 @@ app.get("/paymentnote/:uuid", async (req: Request, res: Response) => {
             res.status(404);
         }
 
-        const data = await Transaction.findAll({
+        const data: any = await Transaction.findAll({
             where: { transaction_payment_note_uuid: uuid }
         });
     
         // Build the response
-        const result: any = {
-            "payment_note_period_from_datetime": paymentnote.payment_note_period_from_datetime,
-            "payment_note_period_to_datetime": paymentnote.payment_note_period_to_datetime,
-            "payment_note_created_datetime": paymentnote.payment_note_created_datetime,
-            "payment_note_transactions_count": paymentnote.payment_note_transactions_count,
-            "payment_note_value": paymentnote.payment_note_value,
-            "payment_note_status_code": paymentnote.payment_note_status_code,
-            "transactions": data || []
+        const result: iPaymentnoteWithTransactions = {
+            payment_note_uuid: paymentnote.payment_note_uuid,
+            payment_note_created_datetime: paymentnote.payment_note_created_datetime,
+            payment_note_period_from_datetime: paymentnote.payment_note_period_from_datetime,
+            payment_note_period_to_datetime: paymentnote.payment_note_period_to_datetime,
+            payment_note_transactions_count: paymentnote.payment_note_transactions_count,
+            payment_note_value: paymentnote.payment_note_value,
+            payment_note_status_code: paymentnote.payment_note_status_code,
+            transactions: data || []
         };
     
         res.json(result);
     } catch (e) {
-        return res.json({ msg: "fail to read", status: 500, route: "/read" });
+        return res.json({ msg: "paymentnote by uuid failed", status: 500 });
     }
 });
-
-// UPDATE `transaction` SET `transaction_payment_note_uuid` = '', `transaction_status_code` = "PENDING";
 
 app.post("/paymentnote", async (req: Request, res: Response) => {
     if (!req.body.period_from || !req.body.period_to) {
@@ -126,10 +146,10 @@ app.post("/paymentnote", async (req: Request, res: Response) => {
             uuids.push(transaction.transaction_uuid);
         });
 
-        const sUuids = "'" + uuids.join("','") + "'";
+        const sUuids: string = "'" + uuids.join("','") + "'";
 
         // Massive update
-        const sql = `
+        const sql: string = `
               UPDATE transaction
               SET 
                 transaction_status_code = 'PAID',
