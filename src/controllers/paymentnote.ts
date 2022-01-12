@@ -10,34 +10,14 @@ import { Op, QueryTypes } from "sequelize";
 
 const router = express.Router();
 
-// Interfaces
-interface iTransaction {
-	transaction_uuid: string;
-	transaction_status_code: string;
-	transaction_value: Number;
-    transaction_datetime: Date;
-    transaction_payment_note_uuid: string;
-}
-
-interface iPaymentnoteWithTransactions {
-    payment_note_uuid: string;
-    payment_note_created_datetime: Date;
-    payment_note_period_from_datetime: Date;
-    payment_note_period_to_datetime: Date;
-    payment_note_transactions_count: Number;
-    payment_note_value: Number;
-    payment_note_status_code: string;
-    transactions: iTransaction[]
-}
-
 router.get("/", async (req: Request, res: Response) => {
     try {
         const limit: number = Number(req.query.limit) || 10;
         const offset: number = Number(req.query.offset) || 0;
 
-        const records = await Paymentnote.findAll({ where: {}, limit, offset });
+        const paymentnotes = await Paymentnote.findAll({ where: {}, limit, offset }) as Paymentnote[];
 
-        return res.json(records);
+        return res.json(paymentnotes);
     } catch (e) {
         return res.json({ msg: "paymentnote failed", status: 500 });
     }
@@ -47,28 +27,28 @@ router.get("/:uuid", async (req: Request, res: Response) => {
     try {
         const uuid: string = req.params.uuid;
 
-        const paymentnote: any = await Paymentnote.findByPk(uuid);
+        const paymentnote = await Paymentnote.findByPk(uuid) as Paymentnote;
 
         if (!paymentnote) {
             res.status(404);
         }
 
-        const data: any = await Transaction.findAll({
+        const data = await Transaction.findAll({
             where: { transaction_payment_note_uuid: uuid }
-        });
-    
+        }) as Transaction[];
+
         // Build the response
-        const result: iPaymentnoteWithTransactions = {
-            payment_note_uuid: paymentnote.payment_note_uuid,
-            payment_note_created_datetime: paymentnote.payment_note_created_datetime,
-            payment_note_period_from_datetime: paymentnote.payment_note_period_from_datetime,
-            payment_note_period_to_datetime: paymentnote.payment_note_period_to_datetime,
-            payment_note_transactions_count: paymentnote.payment_note_transactions_count,
-            payment_note_value: paymentnote.payment_note_value,
-            payment_note_status_code: paymentnote.payment_note_status_code,
+        const result: any = {
+            payment_note_uuid: paymentnote.getDataValue("payment_note_uuid"),
+            payment_note_created_datetime: paymentnote.getDataValue("payment_note_created_datetime"),
+            payment_note_period_from_datetime: paymentnote.getDataValue("payment_note_period_from_datetime"),
+            payment_note_period_to_datetime: paymentnote.getDataValue("payment_note_period_to_datetime"),
+            payment_note_transactions_count: paymentnote.getDataValue("payment_note_transactions_count"),
+            payment_note_value: paymentnote.getDataValue("payment_note_value"),
+            payment_note_status_code: paymentnote.getDataValue("payment_note_status_code"),
             transactions: data || []
         };
-    
+
         res.json(result);
     } catch (e) {
         return res.json({ msg: "paymentnote by uuid failed", status: 500 });
@@ -80,7 +60,7 @@ router.post("/", async (req: Request, res: Response) => {
         res.status(404).send({ error: 'Must provide period_from and preiod_to' });
     }
 
-    const paymentnote: any = await Paymentnote.create({
+    const paymentnote = await Paymentnote.create({
         payment_note_uuid: uuidv4(),
         payment_note_created_datetime: new Date(),
         payment_note_period_from_datetime: req.body.period_from,
@@ -88,14 +68,14 @@ router.post("/", async (req: Request, res: Response) => {
         payment_note_transactions_count: 0,
         payment_note_value: 0,
         payment_note_status_code: "CREATING"
-    });
+    }) as Paymentnote;
 
     const transactions: any = await Transaction.findAndCountAll({
         where: {
             transaction_status_code: "PENDING",
             transaction_datetime: {
-                [Op.gte]: paymentnote.payment_note_period_from_datetime,
-                [Op.lt]: paymentnote.payment_note_period_to_datetime
+                [Op.gte]: paymentnote.getDataValue("payment_note_period_from_datetime"),
+                [Op.lt]: paymentnote.getDataValue("payment_note_period_to_datetime")
             }
         }
     });
@@ -113,11 +93,11 @@ router.post("/", async (req: Request, res: Response) => {
 
         // Massive update
         const sql: string = `
-                UPDATE transaction
-                SET 
-                transaction_status_code = 'PAID',
-                transaction_payment_note_uuid = '${paymentnote.payment_note_uuid}'
-                WHERE transaction_uuid IN(${sUuids});
+            UPDATE transaction
+            SET 
+            transaction_status_code = 'PAID',
+            transaction_payment_note_uuid = '${paymentnote.getDataValue("payment_note_uuid")}'
+            WHERE transaction_uuid IN(${sUuids});
         `;
 
         await db.query(sql, { type: QueryTypes.UPDATE });
@@ -131,13 +111,13 @@ router.post("/", async (req: Request, res: Response) => {
             },
             // where
             {
-                where: { payment_note_uuid: paymentnote.payment_note_uuid }
+                where: { payment_note_uuid: paymentnote.getDataValue("payment_note_uuid") }
             }
         );
     }
 
     res.json({
-        payment_note_uuid: paymentnote.payment_note_uuid
+        payment_note_uuid: paymentnote.getDataValue("payment_note_uuid")
     });
 });
     

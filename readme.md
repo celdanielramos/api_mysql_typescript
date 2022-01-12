@@ -45,3 +45,7 @@ The name of the file is: api_typescript.postman_collection.json
 - The things that would change are:
     - implement a client for a queue service
     - remove the code from the POST endpoint related with updating the transactions and the paymentnotes. This has to be managed by a worker in the queue.
+
+## Improvements
+
+- The package "express-validator" can be installed for validating the params sent to the endpoints.

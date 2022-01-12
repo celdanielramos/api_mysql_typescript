@@ -10,9 +10,9 @@ router.get("/", async (req: Request, res: Response) => {
         const limit: number = Number(req.query.limit) || 10;
         const offset: number = Number(req.query.offset) || 0;
 
-        const records = await Transaction.findAll({ where: {}, limit, offset });
+        const transactions = await Transaction.findAll({ where: {}, limit, offset }) as Transaction[];
 
-        return res.json(records);
+        return res.json(transactions);
     } catch (e) {
         return res.json({ msg: "transaction failed", status: 500 });
     }
@@ -22,13 +22,13 @@ router.get("/:uuid", async (req: Request, res: Response) => {
     try {
         const uuid: string = req.params.uuid;
 
-        const record = await Transaction.findByPk(uuid);
+        const transaction = await Transaction.findByPk(uuid) as Transaction;
 
-        if (!record) {
+        if (!transaction) {
             res.status(404);
         }
     
-        return res.json(record);
+        return res.json(transaction);
     } catch (e) {
         return res.json({ msg: "transaction by uuid failed", status: 500 });
     }
