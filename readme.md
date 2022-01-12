@@ -25,13 +25,13 @@ The repo contains a Postman collection in that we could see 5 endpoints
 
 ```
 transaction
-- GET transaction = all transactions paginated
-- GET transaction/:uuid = 1 transaction
+- GET api/v1/transaction = all transactions paginated
+- GET api/v1/transaction/:uuid = 1 transaction
 
 paymentnote
-- GET paymentnote = all paymentnotes paginated
-- GET paymentnote/:uuid = 1 paymentnote with all the transactions related
-- POST paymentnote = create a new paymentnote and relate the transactions involve
+- GET api/v1/paymentnote = all paymentnotes paginated
+- GET api/v1/paymentnote/:uuid = 1 paymentnote with all the transactions related
+- POST api/v1/paymentnote = create a new paymentnote and relate the transactions involve
 ```
 
 The name of the file is: api_typescript.postman_collection.json
